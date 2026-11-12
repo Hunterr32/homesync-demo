@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <title>HomeSync: iPhone App Demo</title>
+  <meta name="description" content="Interactive preview of the HomeSync iPhone app with made-up sample data. Not connected to Firebase; nothing is saved." />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --spruce: #2C594B; --spruce-deep: #1F4237; --honey: #E0A43A; --linen: #F3F1EA; --ink: #1E2822; --muted: #5E6B63; }
+    * { box-sizing: border-box; margin: 0; }
+    body { min-height: 100vh; background: radial-gradient(1200px 700px at 70% 30%, #E6EFE9, var(--linen)); color: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px; display: flex; gap: 64px; align-items: center; justify-content: center; min-height: 100vh; }
+    .info { max-width: 420px; }
+    .brand { font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 2.6rem; color: var(--spruce-deep); line-height: 1.1; }
+    .tag { margin: 8px 0 24px; color: var(--muted); font-size: 1.1rem; }
+    .notice { background: #fff; border-left: 4px solid var(--honey); border-radius: 14px; padding: 16px 18px; box-shadow: 0 6px 24px rgba(30,40,34,.08); }
+    .notice h2 { font-size: 1rem; margin-bottom: 8px; }
+    .notice ul { padding-left: 20px; color: var(--muted); }
+    .notice li { margin: 4px 0; }
+    .notice strong { color: var(--ink); }
+    .tips { margin-top: 20px; color: var(--muted); font-size: .95rem; }
+    .phone { position: relative; flex: none; width: 414px; height: 868px; padding: 12px; border-radius: 64px;
+      background: linear-gradient(145deg, #3a3d40, #121314); box-shadow: 0 30px 80px rgba(20,30,25,.35), inset 0 0 0 2px #55595d; }
+    .screen { position: relative; width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: var(--linen); }
+    .status { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 6px 34px 0 42px;
+      font: 600 16px/1 -apple-system, system-ui, sans-serif; color: var(--ink); background: var(--linen); }
+    .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 124px; height: 36px; border-radius: 20px; background: #000; z-index: 2; }
+    .icons { display: flex; gap: 6px; align-items: center; }
+    .battery { width: 26px; height: 12px; border: 1.5px solid var(--ink); border-radius: 4px; padding: 1.5px; opacity: .9; }
+    .battery i { display: block; width: 75%; height: 100%; background: var(--ink); border-radius: 1.5px; }
+    iframe { display: block; width: 390px; height: 790px; border: 0; }
+    .home-bar { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .85; pointer-events: none; }
+    /* On a phone, skip the frame and show the app full screen. */
+    @media (max-width: 860px), (max-height: 760px) {
+      .wrap { display: block; padding: 0; min-height: 0; }
+      .info { max-width: none; padding: 16px; }
+      .brand { font-size: 1.6rem; } .tag { margin: 2px 0 12px; font-size: 1rem; }
+      .tips { display: none; }
+      .phone { width: 100%; height: auto; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+      .screen { width: 100%; height: auto; border-radius: 0; }
+      .status, .island, .home-bar { display: none; }
+      iframe { width: 100%; height: 100dvh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="info">
+      <div class="brand">HomeSync</div>
+      <p class="tag">A shared household chore tracker for iPhone. This is an interactive preview of how the app looks and works.</p>
+      <div class="notice" role="note">
+        <h2>About this demo</h2>
+        <ul>
+          <li><strong>Not connected to Firebase</strong> or any account, server or database. It runs entirely in your browser.</li>
+          <li><strong>Nothing is saved.</strong> Changes disappear when you refresh or close the page.</li>
+          <li>Everyone in it (Riley, Alex, Sam and Taylor) and every home is <strong>made up</strong>.</li>
+        </ul>
+      </div>
+      <p class="tips">Try it: open <em>Maple Street House</em>, tick off a chore and watch the room's status change, add a note to a room, or tap <em>Organize my day</em>.</p>
+    </section>
+    <div class="phone" aria-label="iPhone preview">
+      <div class="screen">
+        <div class="island"></div>
+        <div class="status"><span id="clock">9:41</span><span class="icons" aria-hidden="true">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+          <span class="battery"><i></i></span></span></div>
+        <iframe src="app.html" title="HomeSync app demo"></iframe>
+        <div class="home-bar"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const c = document.getElementById('clock');
+    const tick = () => { const d = new Date(); c.textContent = d.getHours() % 12 || 12; c.textContent += ':' + String(d.getMinutes()).padStart(2, '0'); };
+    tick(); setInterval(tick, 30000);
+  </script>
+</body>
+</html>
