@@ -21,7 +21,17 @@
     .notice ul { padding-left: 20px; color: var(--muted); }
     .notice li { margin: 4px 0; }
     .notice strong { color: var(--ink); }
-    .tips { margin-top: 20px; color: var(--muted); font-size: .95rem; }
+    .howto { margin-top: 20px; background: var(--spruce); color: #fff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 6px 24px rgba(30,40,34,.12); }
+    .howto h2 { font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+    .howto ol { list-style: none; padding: 0; }
+    .howto li { display: flex; gap: 10px; align-items: flex-start; margin: 7px 0; line-height: 1.35; }
+    .howto li .n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.18); font: 700 12px/22px system-ui, sans-serif; text-align: center; }
+    .howto li.done { opacity: .7; }
+    .howto li.done .n { background: var(--honey); color: var(--spruce-deep); }
+    .howto li.done .n::before { content: "\2713"; }
+    .howto li.done .n span { display: none; }
+    .howto li.current { font-weight: 600; }
+    .howto button { background: none; border: 0; color: #fff; opacity: .8; font: 600 12px system-ui, sans-serif; cursor: pointer; text-decoration: underline; padding: 0; }
     .phone { position: relative; flex: none; width: 414px; height: 868px; padding: 12px; border-radius: 64px;
       background: linear-gradient(145deg, #3a3d40, #121314); box-shadow: 0 30px 80px rgba(20,30,25,.35), inset 0 0 0 2px #55595d; }
     .screen { position: relative; width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: var(--linen); }
@@ -38,7 +48,9 @@
       .wrap { display: block; padding: 0; min-height: 0; }
       .info { max-width: none; padding: 16px; }
       .brand { font-size: 1.6rem; } .tag { margin: 2px 0 12px; font-size: 1rem; }
-      .tips { display: none; }
+      .howto { margin-top: 12px; padding: 12px 14px; }
+      .notice { display: none; }
+      .info::after { content: "Not connected to Firebase · nothing is saved · sample data only"; display: block; margin-top: 8px; font-size: .8rem; color: var(--muted); }
       .phone { width: 100%; height: auto; padding: 0; border-radius: 0; background: none; box-shadow: none; }
       .screen { width: 100%; height: auto; border-radius: 0; }
       .status, .island, .home-bar { display: none; }
@@ -59,7 +71,15 @@
           <li>Everyone in it (Riley, Alex, Sam and Taylor) and every home is <strong>made up</strong>.</li>
         </ul>
       </div>
-      <p class="tips">Try it: open <em>Maple Street House</em>, tick off a chore and watch the room's status change, add a note to a room, or tap <em>Organize my day</em>.</p>
+      <div class="howto" role="region" aria-label="How to try it">
+        <h2>How to try it (1 minute) <button type="button" id="restart" hidden>Restart tips</button></h2>
+        <ol id="steps">
+          <li data-step="0"><span class="n"><span>1</span></span><span>Tap <strong>Maple Street House</strong> in the phone</span></li>
+          <li data-step="1"><span class="n"><span>2</span></span><span>Tick a chore <strong>&#10003;</strong>: the room's status and activity feed update instantly</span></li>
+          <li data-step="2"><span class="n"><span>3</span></span><span>Open a room, like <strong>Bathroom</strong>, to see its tasks and notes</span></li>
+          <li data-step="3"><span class="n"><span>4</span></span><span>Go back and tap <strong>Organize my day</strong></span></li>
+        </ol>
+      </div>
     </section>
     <div class="phone" aria-label="iPhone preview">
       <div class="screen">
@@ -76,6 +96,112 @@
     const c = document.getElementById('clock');
     const tick = () => { const d = new Date(); c.textContent = d.getHours() % 12 || 12; c.textContent += ':' + String(d.getMinutes()).padStart(2, '0'); };
     tick(); setInterval(tick, 30000);
+
+    // ---- Guided tour: a pulsing highlight + hint bubble inside the phone, steps tick off as you go ----
+    (() => {
+      const frame = document.querySelector('iframe');
+      const items = [...document.querySelectorAll('#steps li')];
+      const restart = document.getElementById('restart');
+      const HINTS = [
+        'Start here: tap this home',
+        'Tap ✓ to finish a chore',
+        'Scroll down to Rooms and open one',
+        'Tap here to plan your day',
+      ];
+      let done = [false, false, false, false];
+      let off = false;
+      let lastStep = -2;
+      let roomSince = 0;
+
+      const textOf = (el) => (el.textContent || '').replace(/\s+/g, ' ').trim();
+      function find(doc, step) {
+        const q = (sel) => [...doc.querySelectorAll(sel)];
+        if (step === 0) return q('.home-card, button, [role=button]').find((e) => textOf(e).startsWith('Maple Street House') || (e.children.length < 6 && /Maple Street House/.test(textOf(e)) && e.matches('.home-card')));
+        if (step === 1) return q('button.checkbtn[aria-label="Mark done"]')[0];
+        if (step === 2) {
+          const head = q('button.panel-head').find((e) => /Rooms/.test(textOf(e)));
+          if (head && head.getAttribute('aria-expanded') !== 'true') return head;
+          const rows = [...((head && head.parentElement) || doc).querySelectorAll('button.row')];
+          return rows.find((e) => /^Bathroom/.test(textOf(e))) || rows[0] || head;
+        }
+        if (step === 3) return q('button.organize-btn')[0];
+        return null;
+      }
+      function where(doc) {
+        if (doc.querySelector('button.organize-btn')) return 'dashboard';
+        if ([...doc.querySelectorAll('h2, h3, .section-label, div')].some((e) => e.children.length === 0 && /^Tasks in this room$/i.test(textOf(e)))) return 'room';
+        if (doc.querySelector('.home-card')) return 'homes';
+        return 'other';
+      }
+      function setup(doc) {
+        if (doc.getElementById('tour-style')) return;
+        const st = doc.createElement('style'); st.id = 'tour-style';
+        st.textContent = `
+          .tour-target { position: relative; z-index: 30; outline: 3px solid #E0A43A !important; outline-offset: 3px; border-radius: 14px; animation: tourPulse 1.4s ease-in-out infinite; }
+          @keyframes tourPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(224,164,58,.55); } 50% { box-shadow: 0 0 0 10px rgba(224,164,58,0); } }
+          #tour-bubble { position: absolute; z-index: 999; max-width: 230px; background: #1F4237; color: #fff; font: 600 14px/1.3 system-ui, -apple-system, sans-serif;
+            padding: 10px 34px 10px 12px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events: auto; }
+          #tour-bubble::before { content: ""; position: absolute; left: 22px; width: 12px; height: 12px; background: #1F4237; transform: rotate(45deg); }
+          #tour-bubble.below::before { top: -6px; } #tour-bubble.above::before { bottom: -6px; }
+          #tour-bubble small { display: block; font-weight: 400; opacity: .75; margin-top: 2px; }
+          #tour-bubble button { position: absolute; top: 6px; right: 8px; border: 0; background: none; color: #fff; opacity: .7; font-size: 16px; cursor: pointer; }`;
+        doc.head.appendChild(st);
+        doc.addEventListener('click', (e) => {
+          const t = e.target.closest ? e.target.closest('button, [role=button], .home-card') : null;
+          if (!t) return;
+          if (t.matches('button.checkbtn') && where(doc) === 'dashboard') done[1] = true;
+          if (t.matches('button.organize-btn')) done[3] = true;
+        }, true);
+      }
+      function render() {
+        let doc; try { doc = frame.contentDocument; } catch { return; }
+        if (!doc || !doc.body) return;
+        setup(doc);
+        const w = where(doc);
+        if (w === 'dashboard' || w === 'room') done[0] = true;
+        if (w === 'room') done[2] = true;
+        const step = done.indexOf(false);
+        items.forEach((li, i) => { li.classList.toggle('done', done[i]); li.classList.toggle('current', i === step && !off); });
+        restart.hidden = !(off || step === -1);
+        doc.querySelectorAll('.tour-target').forEach((e) => e.classList.remove('tour-target'));
+        let b = doc.getElementById('tour-bubble');
+        let target = (!off && step !== -1) ? find(doc, step) : null;
+        // Step 4 lives on the dashboard; if they're elsewhere, nudge them back instead.
+        // Wait a few seconds in a room before nudging, so people can look around first.
+        if (w === 'room') { roomSince = roomSince || Date.now(); } else { roomSince = 0; }
+        if (!off && step === 3 && !target && Date.now() - roomSince > 5000) { target = doc.querySelector('button[aria-label="Back to dashboard"], button.iconbtn'); }
+        if (!target) { if (b) b.remove(); return; }
+        target.classList.add('tour-target');
+        // When a new step's target is off-screen (e.g. Rooms further down), bring it into view once.
+        const key = step + ':' + (target.getAttribute('aria-label') || target.className.replace(' tour-target', '')) + ':' + w;
+        if (key !== lastStep) {
+          lastStep = key;
+          const tr = target.getBoundingClientRect();
+          if (tr.top < 0 || tr.bottom > doc.documentElement.clientHeight - 40) {
+            setTimeout(() => target.isConnected && target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 900);
+          }
+        }
+        if (!b) {
+          b = doc.createElement('div'); b.id = 'tour-bubble';
+          b.innerHTML = '<span></span><small></small><button type="button" aria-label="Hide tips">×</button>';
+          b.querySelector('button').addEventListener('click', (e) => { e.stopPropagation(); off = true; render(); });
+          doc.body.appendChild(b);
+        }
+        const backNudge = step === 3 && !target.matches('button.organize-btn');
+        const roomsHead = step === 2 && target.matches('button.panel-head');
+        b.querySelector('span').textContent = backNudge ? 'Go back to the home to continue'
+          : roomsHead ? 'Tap Rooms to open the list' : (step === 2 ? 'Open a room to see its tasks and notes' : HINTS[step]);
+        b.querySelector('small').textContent = `Step ${step + 1} of 4`;
+        const r = target.getBoundingClientRect(), view = doc.documentElement.clientHeight;
+        const sy = doc.defaultView.scrollY, sx = doc.defaultView.scrollX;
+        const below = r.bottom + 70 < view;
+        b.className = below ? 'below' : 'above';
+        b.style.left = Math.max(8, Math.min(r.left + sx, doc.documentElement.clientWidth - 250)) + 'px';
+        b.style.top = (below ? r.bottom + sy + 12 : r.top + sy - b.offsetHeight - 12) + 'px';
+      }
+      restart.addEventListener('click', () => { done = [false, false, false, false]; off = false; lastStep = -2; try { frame.contentWindow.location.reload(); } catch {} });
+      setInterval(render, 300);
+    })();
   </script>
 </body>
 </html>
